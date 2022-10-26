@@ -1,0 +1,1 @@
+const configUpdateEvent = new Event('configUpdate');

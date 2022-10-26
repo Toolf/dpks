@@ -1,0 +1,25 @@
+body {
+    background-color: #edf7f6;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+}
+
+.controllers {
+    width: 20%;
+    display: flex;
+    flex-direction: column;
+    background-color: #222222;
+    height: 100vh;
+    color: white;
+    font-size: 32px;
+    padding: 15px 30px;
+}
+
+.controllers>h3 {
+    padding-top: 50px;
+    margin-bottom: 25px;
+    border-bottom: 3px solid white;
+}

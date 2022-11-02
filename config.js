@@ -1,9 +1,10 @@
 const config = {
-    intternalScale: 20,
-    nodeRadius: 10,
-    externalScale: 200,
-    offset: { x: 20, y: 20 },
-    N: 25,
+    intternalScale: 30,
+    nodeRadius: 8,
+    externalScale: 3,
+    offset: { x: 100, y: 100 },
+    center: { x: 100, y: 100 },
+    N: 3,
 }
 
 function setN(N) {

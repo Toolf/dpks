@@ -50,7 +50,6 @@ function drawEdge({ from, to }) {
 
 function redraw() {
     // clear canvas
-    console.log(canvas.width);
     context.clearRect(0, 0, 10000, 10000);
 
     let { nodes, matrix } = state;
@@ -71,7 +70,6 @@ function redraw() {
 
 function updateCaracteristics() {
     let names = ["D", "S", "Ds", "C", "T"];
-    console.dir(state);
     for (const name of names) {
         let el = document.getElementById(`${name}`);
         let val = state.results[name].toLocaleString(
@@ -82,21 +80,36 @@ function updateCaracteristics() {
     }
 }
 
+function rotate(cx, cy, x, y, angle) {
+    var radians = (Math.PI / 180) * angle,
+        cos = Math.cos(radians),
+        sin = Math.sin(radians),
+        nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
+        ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
+    return { x: nx, y: ny };
+}
 
-function genInternal({ x, y, startIndex }) {
+function genInternal({ x, y, rotateAngle = 0, startIndex }) {
     let coordinates = [
-        [3.5, 2.5],
-        [4.5, 4.5],
-        [2.5, 4.5],
-        [3.5, 0.5],
-        [6.5, 6.5],
-        [0.5, 6.5],
+        [1, 1],
+        [3, 1],
+        [2, 2],
+        [2, 3],
+        [1, 4],
+        [3, 4],
     ];
+    let maxX = 3;
+    let maxY = 4;
     let nodes = [];
     for (coor of coordinates) {
-        let node = {
+        let pos = {
             x: x + coor[0] * config.intternalScale,
             y: y + coor[1] * config.intternalScale,
+        };
+        let rotatedPos = rotate(x + maxX / 2 * config.intternalScale, y + maxY / 2 * config.intternalScale, pos.x, pos.y, rotateAngle);
+        let node = {
+            x: rotatedPos.x,
+            y: rotatedPos.y,
             radius: config.nodeRadius,
             fillStyle: '#22cccc',
             strokeStyle: '#009999',
@@ -110,64 +123,67 @@ function genInternal({ x, y, startIndex }) {
 
 function genMatrix(n) {
     let K = 6;
-    let C = 6;
-    let N = Math.ceil(n / K);
-    let L = Math.ceil(Math.sqrt(N));
-    let H = L * (L - 1) > N ? L - 1 : L;
+    let N = n / K;
     let matrix = new Array(n);
     for (let i = 0; i < n; i++) {
         matrix[i] = new Array(n).fill(0);
     }
     for (let index = 0; index < N; index++) {
-        let cindex = index * K;
+        let cIndex = index * K;
         let sumbmatrix = [
-            [0, 1, 1, 1, 0, 0],
-            [1, 0, 1, 0, 1, 0],
-            [1, 1, 0, 0, 0, 1],
-            [1, 0, 0, 0, 1, 1],
-            [0, 1, 0, 1, 0, 1],
-            [0, 0, 1, 1, 1, 0],
+            [0, 0, 1, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [1, 1, 0, 1, 0, 0],
+            [0, 0, 1, 0, 1, 1],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0, 0],
         ];
         for (let row = 0; row < K; row++) {
             for (let col = 0; col < K; col++) {
-                if (cindex + row >= n || cindex + col >= n) continue;
-                matrix[cindex + row][cindex + col] = sumbmatrix[row][col];
+                if (cIndex + row >= n || cIndex + col >= n) continue;
+                matrix[cIndex + row][cIndex + col] = sumbmatrix[row][col];
             }
         }
     }
-    for (let row = 0; row < L; row++) {
-        for (let col = 0; col < H; col++) {
-            if ((row * H + col) * K >= matrix.length) break;
-            if (row == 0 && col == 0) continue;
-            let externalMatrix = [
-                [0, 0, 0, 0, 1, 0],
-                [0, 0, 0, 0, 0, 1],
-                [0, 0, 0, 1, 0, 0],
-                [0, 0, 1, 0, 0, 0],
-                [1, 0, 0, 0, 0, 0],
-                [0, 1, 0, 0, 0, 0],
-            ];
-            let m1Index = (row * H + col) * K;
-            let m2Index = (row * H + col - 1) * K;
-            let m3Index = ((row - 1) * H + col) * K;
-            if (col != 0) {
-                for (let lrow = 0; lrow < K; lrow++) {
-                    for (let lcol = 0; lcol < K; lcol++) {
-                        if (n > m1Index + lrow && n > m2Index + lcol) {
-                            matrix[m1Index + lrow][m2Index + lcol] = externalMatrix[lrow][lcol];
-                            matrix[m2Index + lcol][m1Index + lrow] = externalMatrix[lrow][lcol];
-                        }
-                    }
+
+    let externalMatrix = [
+        [0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+    ];
+    let externalMatrix2 = [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+    ];
+    for (let i = 0; i < N; i++) {
+        let cIndex = i * K;
+        let cIndexNext = ((i + 1) % N) * K;
+        let cIndexNext1 = ((i + Math.floor(N / 3)) % N) * K;
+        if (N == 1) break;
+        for (let row = 0; row < K; row++) {
+            for (let col = 0; col < K; col++) {
+                if (cIndex + row < n && cIndexNext + col < n) {
+                    matrix[cIndex + row][cIndexNext + col] = Math.max(
+                        matrix[cIndex + row][cIndexNext + col],
+                        externalMatrix[row][col],
+                    );
+                    matrix[cIndexNext + col][cIndex + row] = Math.max(
+                        matrix[cIndexNext + col][cIndex + row],
+                        externalMatrix[row][col],
+                    );
                 }
-            }
-            if (row != 0) {
-                for (let lrow = 0; lrow < K; lrow++) {
-                    for (let lcol = 0; lcol < K; lcol++) {
-                        if (n > m1Index + lrow && n > m3Index + lcol) {
-                            matrix[m1Index + lrow][m3Index + lcol] = externalMatrix[lrow][lcol];
-                            matrix[m3Index + lcol][m1Index + lrow] = externalMatrix[lcol][lrow];
-                        }
-                    }
+                if (cIndex + row < n && cIndexNext1 + col < n) {
+                    matrix[cIndex + row][cIndexNext1 + col] = Math.max(
+                        matrix[cIndex + row][cIndexNext1 + col],
+                        externalMatrix2[row][col],
+                    );
                 }
             }
         }
@@ -180,22 +196,22 @@ function onInitOrUpdateConfig() {
     let matrix = genMatrix(config.N * 6);
 
     //update Nodes
-    let l = Math.ceil(Math.sqrt(config.N));
-    let c = l * (l - 1) > config.N ? l - 1 : l;
     let scale = config.externalScale;
     let offset = config.offset;
     let nodes = [];
-    for (let i = 0; i < l; i++) {
-        for (let j = 0; j < c; j++) {
-            if (i * c + j >= config.N) break;
-            let internalNodes = genInternal({
-                x: i * scale + offset.x,
-                y: j * scale + offset.y,
-                startIndex: nodes.length + 1
-            });
-            nodes = [...nodes, ...internalNodes];
-        }
+    let center = config.center;
+    for (let i = 0; i < config.N; i++) {
+        let pos = { x: center.x, y: 0 };
+        let nextPos = rotate(center.x, center.y, pos.x, pos.y, 360 / config.N * i);
+        let internalNodes = genInternal({
+            x: nextPos.x * scale + offset.x,
+            y: nextPos.y * scale + offset.y,
+            startIndex: nodes.length + 1,
+            rotateAngle: 360 / config.N * i + 90,
+        });
+        nodes = [...nodes, ...internalNodes];
     }
+
 
     let characteristics = getTopologicalCharacteristics(matrix);
 
@@ -206,7 +222,6 @@ function onInitOrUpdateConfig() {
         matrix,
         results: characteristics
     }
-    console.dir(matrix);
     // redraw
     redraw();
     // update characteristics
@@ -224,19 +239,18 @@ function getTopologicalCharacteristics(matrix) {
         }
         dMatrix.push(arr);
     }
+    console.dir(dMatrix);
 
     for (let i = 0; i < N; i++) {
         for (let k = 0; k < N; k++) {
-            if (i == k) break;
             for (let j = 0; j < N; j++) {
-                if (dMatrix[i][k] > dMatrix[i][j] + dMatrix[j][k]) {
-                    dMatrix[i][k] = dMatrix[i][j] + dMatrix[j][k]
-                    dMatrix[k][i] = dMatrix[i][k]
+                if (dMatrix[k][j] > dMatrix[k][i] + dMatrix[i][j]) {
+                    dMatrix[k][j] = dMatrix[k][i] + dMatrix[i][j];
+                    dMatrix[j][k] = dMatrix[k][j];
                 }
             }
         }
     }
-    console.dir(matrix);
     let D = Math.max(...dMatrix.map((a) => Math.max(...a)));
     let S = Math.max(...matrix.map((l) => l.reduce((a, b) => a + b, 0)));
     let Ds = dMatrix.map((l) => l.reduce((a, b) => a + b, 0)).reduce((a, b) => a + b, 0) / (N * (N - 1));
